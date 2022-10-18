@@ -1,4 +1,4 @@
-from models.models import SportDB, LeagueDB, TeamsDB
+from models.models import SportDB, LeagueDB, TeamsDB, Basketball_matchesDB
 from sqlalchemy import desc, asc
 from extensions import extensions
 from app import app
@@ -58,4 +58,11 @@ def fill_teams():
                         print("команда : ", last_created_team.team_name, " была создана")
 
 # fill_teams()
+def delete_matches():
+    with app.app_context():
+        matches_data = Basketball_matchesDB.query.all()
+        for match in matches_data:
+            db.session.delete(match)
+            db.session.commit()
 
+# delete_matches()

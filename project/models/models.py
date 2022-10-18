@@ -20,6 +20,8 @@ class TeamsDB(db.Model):
     team_id = db.Column(db.Integer, primary_key=True)
     team_name = db.Column(db.String)
     league_id = db.Column(db.Integer, db.ForeignKey('leagueDB.league_id'))
+    home_team = db.relationship('Basketball_matchesDB', backref='home_team', foreign_keys="[Basketball_matchesDB.home_team_id]")
+    away_team = db.relationship('Basketball_matchesDB', backref='away_team', foreign_keys="[Basketball_matchesDB.away_team_id]")
 
 
 class Match_statusDB(db.Model):
