@@ -1,0 +1,61 @@
+from models.models import SportDB, LeagueDB, TeamsDB
+from sqlalchemy import desc, asc
+from extensions import extensions
+from app import app
+db = extensions.db
+from data_samples import teams_data
+
+def create_sports():
+    with app.app_context():
+        new_sport = SportDB(
+            sport_name = "Баскетбол"
+        )
+        db.session.add(new_sport)
+        db.session.commit()
+        last_created_sport= SportDB.query.order_by(desc(SportDB.sport_id)).first()
+
+        print("Спорт : ", last_created_sport.sport_name, " был создан")
+
+# create_sports()
+
+def create_league():
+    with app.app_context():
+        new_league = LeagueDB(
+            league_country = "Аргентина",
+            league_name = "Лига А",
+            sport_id = 1
+        )
+        db.session.add(new_league)
+        db.session.commit()
+        last_created_league= LeagueDB.query.order_by(desc(LeagueDB.league_id)).first()
+
+        print("Лига : ", last_created_league.league_name, " была создана")
+
+# create_league()
+
+def fill_teams():
+    with app.app_context():
+        teams_dict = teams_data.teams
+        for key_1, value_1 in teams_dict.items():
+            sport_id = key_1
+            country_dict = value_1
+            for key_2, value_2 in country_dict.items():
+                country_name = key_2
+                league_dict = value_2
+                for key_3, value_3 in league_dict.items():
+                    league_id = key_3
+                    teams_data_dict = value_3
+                    for key_4, value_4 in teams_data_dict.items():
+                        team_name = value_4
+                        new_team = TeamsDB(
+                            team_name = team_name,
+                            league_id = league_id
+                        )
+                        db.session.add(new_team)
+                        db.session.commit()
+                        last_created_team = TeamsDB.query.order_by(desc(TeamsDB.team_id)).first()
+
+                        print("команда : ", last_created_team.team_name, " была создана")
+
+# fill_teams()
+
