@@ -8,7 +8,7 @@ from data_samples import teams_data
 def create_sports():
     with app.app_context():
         new_sport = SportDB(
-            sport_name = "Баскетбол"
+            sport_name = "Хоккей"
         )
         db.session.add(new_sport)
         db.session.commit()
@@ -66,3 +66,21 @@ def delete_matches():
             db.session.commit()
 
 # delete_matches()
+
+def delete_league_record():
+    with app.app_context():
+        league_data = LeagueDB.query.filter_by(league_country = 'сша', league_name='НХЛ').first()
+        db.session.delete(league_data)
+        db.session.commit()
+# delete_league_record()
+
+
+def lower_country_name():
+    with app.app_context():
+        league_data = LeagueDB.query.all()
+        for league in league_data:
+            country_name = league.league_country
+            new_country_name = country_name.lower()
+            league.league_country = new_country_name
+            db.session.commit()
+# lower_country_name()
