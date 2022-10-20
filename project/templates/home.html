@@ -26,10 +26,29 @@
         <div class="col">
             <h3>Парсинг www.flashscorekz.com</h3>
 <!--            <a href="https://www.flashscorekz.com/basketball/"  target="_blank" class="btn btn-info" role="button">Начать парсинг</a>-->
-            <a href="{{url_for('home.competition_site')}}"><button type="button" class="btn btn-info">Начать парсинг</button></a>
+
+            <a href="{{url_for('home.parse_live')}}"><button type="button" class="btn btn-info">Live</button></a>
+
             <a href="{{url_for('home.parse_finished')}}"><button type="button" class="btn btn-info">Завершенные</button></a>
         </div>
 
+    </div>
+    <div class="row">
+        <div class="col">
+            <form method="POST" action="{{ url_for('home.parse_league')}}">
+              <div class="form-group">
+                <label for="exampleInputEmail1">link</label>
+                <input type="text" class="form-control" id="exampleInputEmail1" placeholder="Enter link" name="link" required>
+                <small id="emailHelp" class="form-text text-muted">ссылка на страницу с командами лиги для парсинга в справочник.</small>
+              </div>
+              <div class="form-group">
+                <label for="exampleInputPassword1">Спорт</label>
+                <input type="text" class="form-control" id="exampleInputPassword1" placeholder="Спорт" name="sport" required>
+              </div>
+
+              <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+        </div>
     </div>
 </div>
 

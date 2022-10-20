@@ -84,3 +84,4 @@ def lower_country_name():
             league.league_country = new_country_name
             db.session.commit()
 # lower_country_name()
+
