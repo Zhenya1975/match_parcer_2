@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, abort, request, jsonify, flash
-from models.models import SportDB, LeagueDB, TeamsDB, Match_statusDB, Basketball_matchesDB
+from models.models import SportDB, LeagueDB, TeamsDB, Match_statusDB, MatchesDB
 from selenium import webdriver
 from sqlalchemy import desc, asc
 from selenium.webdriver.support.wait import WebDriverWait
@@ -120,7 +120,13 @@ def update_league_and_team_data(driver, country, league_name, sport_id, status):
 
 @home.route('/')
 def home_view():
-    return render_template('home.html')
+    data = {'active_tab_pass': 'live_matches'}
+    # if int(active_tab_name) == 0:
+    #     data = {'active_tab_pass': 'live_matches'}
+    # if int(active_tab_name) == 1:
+    #     data = {'active_tab_pass': 'settings'}
+
+    return render_template('home.html', data=data)
 
 @home.route('/parse_finished')
 def parse_finished():
@@ -243,130 +249,209 @@ def parse_live():
     driver.get("https://www.flashscorekz.com/basketball/")
     # driver.get("https://www.flashscorekz.com/hockey/")
     sport_id = 1
-    driver.implicitly_wait(10)
-    # жмем на кнопку принять куки.
-    try:
-        driver.find_element("id", 'onetrust-accept-btn-handler').click()
-    except Exception as e:
-        print("accept_all_button exception ", e)
-    tabs = driver.find_elements("xpath", "//div[@class='filters__text filters__text--default']")
-    for tab in tabs:
-        tab_name = tab.text
-        if tab_name.lower() == "live":
-            tab.click()
-            driver.implicitly_wait(10)
 
-            #  находим родителя sportName basketball
-            parent = driver.find_element("xpath", "//div[@class='sportName basketball']")
-            # находим всех его первых потомков
-            childs = parent.find_elements("xpath", "./*")
-            #  итерируемся по детям
-            league_count = 0
-            live_match_data = {}
-            current_league_identificator = ""
-            for child in childs:
-                child_class_name = child.get_attribute("class")
-                if "event__header" in child_class_name:
-                    country_name_element = child.find_element(By.CLASS_NAME, "event__title--type")
-                    country_name = country_name_element.text.lower()
-                    league_name_element = child.find_element(By.CLASS_NAME, "event__title--name")
-                    league_name = league_name_element.text
-                    league_identificator = country_name + ": " + league_name
-                    current_league_identificator = league_identificator
-                if "twoLine" in child_class_name:
-                    # находим все элементы внутри таблицы
-                    # нужно получить уникальный идентификатор данной игры.
-                    # сумма названий команд даст уникальность
-                    table_childs = child.find_elements("xpath", ".//*")
-                    game_identificator = ""
-                    home_team_name = ""
-                    away_team_name = ""
-                    for table_element in table_childs:
-                        table_element_class = table_element.get_attribute("class")
+    # получаем активную вкладку с названием спорта
+    # ищем родителя в меню
 
-                        if table_element_class and "event__participant--home" in table_element_class:
-                            home_team_name = table_element.text
-                        if table_element_class and "event__participant--away" in table_element_class:
-                            away_team_name = table_element.text
-                        game_identificator = home_team_name + "___" + away_team_name
+    # запускаeм цикл по минутам
+    for i in range(1000):
+        menu_parent = driver.find_element("xpath", "//div[@class='menuTop__items']")
+        # получаем детей
+        menu_childs = menu_parent.find_elements("xpath", ".//*")
+        sport_name = ""
+        for menu_child in menu_childs:
+            menu_child_class = menu_child.get_attribute("class")
+            if menu_child_class and "active" in menu_child_class:
+                sport_name = menu_child.text.lower()
 
-                    table_data = {}
-                    live_match_data[game_identificator] = table_data
+        driver.implicitly_wait(10)
+        # жмем на кнопку принять куки.
+        try:
+            driver.find_element("id", 'onetrust-accept-btn-handler').click()
+        except Exception as e:
+            print("accept_all_button exception ", e)
+        tabs = driver.find_elements("xpath", "//div[@class='filters__text filters__text--default']")
+        for tab in tabs:
+            tab_name = tab.text
+            if tab_name.lower() == "live":
+                tab.click()
+                driver.implicitly_wait(10)
+                #  находим родителя sportName basketball
+                sport_block_class_name = "sportName basketball"
+                sport_block_xpath = "//div[@class='" + sport_block_class_name + "']"
+                sport_block_parent_element = driver.find_element("xpath", sport_block_xpath)
+                # находим всех его первых потомков
+                sport_block_elements = sport_block_parent_element.find_elements("xpath", "./*")
 
-                    table_childs = child.find_elements("xpath", ".//*")
-                    for table_element in table_childs:
-                        table_element_class = table_element.get_attribute("class")
-                        if table_element_class and "stage--block" in table_element_class:
-                            stage_data_text = table_element.text.splitlines()
-                            quarter_name = stage_data_text[0]
-                            table_data['quarter_name'] = quarter_name
+                live_match_data = {} #  сюда записываем данные матчей.
+
+                # ключом этого дикта должен быть идентификатор матча. А все его данные должны уже прицепом прибавляться.
+
+                # live_match_data['sport_name'] = sport_name
+                current_league_name = ""
+                current_country_name = ""
+                #  итерируемся по детям блока с соревнованиями
+                for sport_block_element in sport_block_elements:
+                    child_class_name = sport_block_element.get_attribute("class")
+                    if child_class_name and "event__header" in child_class_name:
+                        # создаем дикт с данными лиги
+                        league_match_data = {}
+                        # Получаем наименование страны лиги
+                        country_name_element = sport_block_element.find_element(By.CLASS_NAME, "event__title--type")
+                        country_name = country_name_element.text.lower()
+                        current_country_name = country_name
+                        # получаем наименование лиги
+                        league_name_element = sport_block_element.find_element(By.CLASS_NAME, "event__title--name")
+                        league_name = league_name_element.text
+                        current_league_name = league_name
+                        league_identificator = country_name + ": " + league_name
+                        # league_match_data["league_identificator"] = league_identificator
+                        # league_match_data["league_country"] = country_name
+                        # league_match_data["league_name"] = league_name
+                        # league_match_data["Sport"] = sport_name
+
+                    if "twoLine" in child_class_name:
+                        # находим все элементы внутри таблицы
+
+                        table_elements = sport_block_element.find_elements("xpath", ".//*")
+                        match_identificator = ""
+                        home_team_name = ""
+                        away_team_name = ""
+                        for table_element in table_elements:
+                            table_element_class = table_element.get_attribute("class")
+                            if table_element_class and "event__participant--home" in table_element_class:
+                                home_team_name = table_element.text
+                            if table_element_class and "event__participant--away" in table_element_class:
+                                away_team_name = table_element.text
+
+                        match_identificator = current_league_name + "__" + home_team_name + "___" + away_team_name
+                        # проверяем есть ли в базе запись с этим матчем
+                        match_data = MatchesDB.query.filter_by(match_string_identificator = match_identificator).first()
+                        if match_data:
+                            pass
+                        else:
+                            new_match_record = MatchesDB(
+                                sport_name = sport_name,
+                                league_country = current_country_name,
+                                league_name = current_league_name,
+                                match_string_identificator = match_identificator,
+                                match_date = datetime.today(),
+                            )
                             try:
-                                current_minute = int(stage_data_text[1].strip())
-                                table_data['current_minute'] = current_minute
-                            except:
-                                pass
-                        if table_element_class and "event__participant--home" in table_element_class:
-                            home_team_name = table_element.text
-                            table_data['home_team_name'] = home_team_name
-                        if table_element_class and "event__participant--away" in table_element_class:
-                            away_team_name = table_element.text
-                            table_data['away_team_name'] = away_team_name
+                                db.session.add(new_match_record)
+                                db.session.commit()
+                            except Exception as e:
+                                print("Ошибка при создании записи о новом матче: ", e)
 
-                        if table_element_class and "event__score--home" in table_element_class:
-                            home_team_score = int(table_element.text)
-                            table_data['home_team_score'] = home_team_score
-                        if table_element_class and "event__score--away" in table_element_class:
-                            away_team_score = int(table_element.text)
-                            table_data['away_team_score'] = away_team_score
-
-                    print(live_match_data)
+                        # получаем содержимое таблицы с матчем
+                        table_childs = sport_block_element.find_elements("xpath", ".//*")
+                        match_status = ""
+                        current_minute = 0
+                        home_team_name = ""
+                        away_team_name = ""
+                        home_team_score = 0
+                        away_team_score = 0
+                        first_quarter_home_score = 0
+                        first_quarter_away_score = 0
+                        second_quarter_home_score = 0
+                        second_quarter_away_score = 0
 
 
-                    # stage_data_element = child.find_element(By.CLASS_NAME, "event__stage--block")
-                    # stage_data_text = stage_data_element.text
-                    # home_team_element = child.find_element(By.CLASS_NAME, "event__participant event__participant--home")
-                    # home_team_name = home_team_element.text
-                    # away_team_element = child.find_element(By.CLASS_NAME, "event__participant event__participant--away")
-                    # away_team_name = away_team_element.text
-                    # print(stage_data_text, home_team_name, away_team_name)
+                        for table_element in table_childs:
+                            table_element_class = table_element.get_attribute("class")
+                            if table_element_class and "stage--block" in table_element_class:
+                                stage_data_text = table_element.text.splitlines()
+                                match_status = stage_data_text[0]
+                                try:
+                                    current_minute = int(stage_data_text[1].strip())
+                                except:
+                                    pass
+                            if table_element_class and "event__participant--home" in table_element_class:
+                                home_team_name = table_element.text
 
+                            if table_element_class and "event__participant--away" in table_element_class:
+                                away_team_name = table_element.text
 
+                            if table_element_class and "event__score--home" in table_element_class:
+                                home_team_score = int(table_element.text)
 
+                            if table_element_class and "event__score--away" in table_element_class:
+                                away_team_score = int(table_element.text)
 
-            # try:
-            #     top_headers_list = driver.find_elements("xpath", "//div[@class='event__header top']")
-            #     event_header_list = driver.find_elements("xpath", "//div[@class='event__header']")
-            #     header_list = top_headers_list + event_header_list
-            #     # top_headers_list = driver.find_elements("xpath", "//div[@class='event__titleBox']")
-            #     for header in header_list:
-            #         # проверяем есть ли у топ хедера сохраненная лига и команды
-            #         country_name = header.find_element(By.CLASS_NAME, "event__title--type")
-            #         league_name_el = header.find_element(By.CLASS_NAME, "event__title--name")
-            #         country = country_name.text.lower()
-            #         league_name = league_name_el.text
-            #
-            #         # проверяем есть ли эта лига в базе
-            #         league_data = LeagueDB.query.filter_by(league_country=country, league_name=league_name).first()
-            #         if league_data:
-            #             print(f"Данные о лиге уже есть в базе. Страна: ", country, ". Лига: ", league_name)
-            #         else:
-            #             # создаем новую лигу
-            #             print(f"Данных о лиге {league_name} нет в базе")
+                            if table_element_class and "event__part--home event__part--1" in table_element_class:
+                                first_quarter_home_score = int(table_element.text)
 
-                    # получаем матчи в данной лиге.
-                    # для этого получаем таблицы sibling
+                            if table_element_class and "event__part--away event__part--1" in table_element_class:
+                                first_quarter_away_score = int(table_element.text)
 
-                    # //div[contains(text(),'(123)')]/parent::div/following-sibling::div
-                    # driver.find_element_by_xpath("//div[@class='txt-bx']/following-sibling::p")
+                            if table_element_class and "event__part--home event__part--2" in table_element_class:
+                                second_quarter_home_score = int(table_element.text)
 
+                            if table_element_class and "event__part--away event__part--2" in table_element_class:
+                                second_quarter_away_score = int(table_element.text)
 
-            # except Exception as e:
-            #     print("Ошибка при парсинге live ", e)
+                            if table_element_class and "event__part--home event__part--3" in table_element_class:
+                                third_quarter_home_score = int(table_element.text)
 
+                            if table_element_class and "event__part--away event__part--3" in table_element_class:
+                                third_quarter_away_score = int(table_element.text)
+
+                            if table_element_class and "event__part--home event__part--4" in table_element_class:
+                                fourth_quarter_home_score = int(table_element.text)
+
+                            if table_element_class and "event__part--away event__part--4" in table_element_class:
+                                fourth_quarter_away_score = int(table_element.text)
+
+                        # обновляем запись о матче данными, собранными из таблицы
+
+                        match_data_record = MatchesDB.query.filter_by(match_string_identificator=match_identificator).first()
+                        if match_data_record:
+                            match_data_record.match_status_name = match_status
+                            match_data_record.match_minute = current_minute
+                            match_data_record.match_home_team_name = home_team_name
+                            match_data_record.match_away_team_name = away_team_name
+                            match_data_record.home_team_final_score = home_team_score
+                            match_data_record.away_team_final_score = away_team_score
+                            match_data_record.first_quarter_home_score = first_quarter_home_score
+
+                            db.session.commit()
+                            # print("Таблица обновилась")
+                        else:
+                            print(f"запись с идентификатором {match_identificator} не найдена")
+
+        time.sleep(60)
+        driver.refresh()
+        driver.implicitly_wait(10)
 
     return redirect(url_for('home.home_view'))
 
+@home.route('/live_mathes_page_load_ajaxfile', methods=["POST", "GET"])
+def live_mathes_page_load_ajaxfile():
+    if request.method == 'POST':
 
+        # competition_id = int(request.form['competition_id'])
+        # current_user_data = UserDB.query.first()
+        #
+        # # первый попавшийся раунд в данном соревновании
+        # any_round_in_comp = RoundsDB.query.filter_by(competition_id=competition_id).first()
+        # round_id = any_round_in_comp.round_id
+        # user_selected_round_id = current_user_data.user_saved_round_id
+        # if user_selected_round_id !=0:
+        #     round_id = user_selected_round_id
+        #
+        # candidates_data = FightcandidateDB.query.filter_by(round_id=round_id).first()
+        # backlog_data = BacklogDB.query.filter_by(round_id=round_id).all()
+        # fights_data = FightsDB.query.filter_by(round_number=round_id).all()
+
+
+        return jsonify({'htmlresponse': render_template('live_matches.html')})
+
+
+
+
+@home.route('/test', methods=["POST", "GET"])
+def test():
+    return render_template("test.html")
 
 @home.route('/parse_league', methods=["POST", "GET"])
 def parse_league():
