@@ -428,6 +428,17 @@ def parse_live():
 @home.route('/live_mathes_page_load_ajaxfile', methods=["POST", "GET"])
 def live_mathes_page_load_ajaxfile():
     if request.method == 'POST':
+        # получаем данные о текущих матчах
+        # по кнопке live мы получаем запуск скрипта, который парсит страницу с соревнованиями
+        # данные складываются в базу
+        # из базы их нужо вытаскивать
+        live_matches_data = MatchesDB.query.all()
+        # получаем список спортов
+        # sport_list = db.session.query.distinct(MatchesDB.sport_name)
+        sport_list = db.session.query(MatchesDB.sport_name).distinct().all()
+        sports_list = []
+        for sport in sport_list:
+            sports_list.append(sport.sport_name)
 
         # competition_id = int(request.form['competition_id'])
         # current_user_data = UserDB.query.first()
@@ -444,7 +455,7 @@ def live_mathes_page_load_ajaxfile():
         # fights_data = FightsDB.query.filter_by(round_number=round_id).all()
 
 
-        return jsonify({'htmlresponse': render_template('live_matches.html')})
+        return jsonify({'htmlresponse': render_template('live_matches.html', live_matches_data=live_matches_data)})
 
 
 
