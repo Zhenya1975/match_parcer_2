@@ -440,6 +440,7 @@ def live_mathes_page_load_ajaxfile():
         for sport in sport_list:
             sports_list.append(sport.sport_name)
 
+        data_dict = {1: 2, 2: 3}
         # competition_id = int(request.form['competition_id'])
         # current_user_data = UserDB.query.first()
         #
@@ -455,14 +456,15 @@ def live_mathes_page_load_ajaxfile():
         # fights_data = FightsDB.query.filter_by(round_number=round_id).all()
 
 
-        return jsonify({'htmlresponse': render_template('live_matches.html', live_matches_data=live_matches_data)})
+        return jsonify({'htmlresponse': render_template('live_matches_2.html', data_dict = data_dict, live_matches_data=live_matches_data)})
 
 
 
 
 @home.route('/test', methods=["POST", "GET"])
 def test():
-    return render_template("test.html")
+    data_dict = {1:2, 2:3}
+    return render_template("test.html", data_dict=data_dict)
 
 @home.route('/parse_league', methods=["POST", "GET"])
 def parse_league():
